@@ -1,0 +1,6 @@
+body.page-loading::before {
+	z-index: 1000 !important;
+}
+body.page-loading::after {
+	z-index: 1000 !important;
+}

@@ -1,0 +1,22 @@
+body.page-loading::before {
+	z-index: 1000 !important;
+}
+body.page-loading::after {
+	z-index: 1000 !important;
+}
+.linerapp_autotask {
+	margin-top: 10px;
+}
+.linerapp_autotask_editTask,
+.linerapp_autotask_addTask {
+	display: inline-block;
+	float: right;
+	margin: 10px;
+}
+.added_task {
+    display: inline-block;
+    min-width: 50%;
+}
+.empty {
+	text-align: center;
+}
