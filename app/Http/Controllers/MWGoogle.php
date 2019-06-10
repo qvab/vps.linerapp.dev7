@@ -209,6 +209,7 @@ class MWGoogle extends Controller
       "date" => strtotime($_REQUEST["date"]),
       "date_attache" => strtotime("now"),
       "id_type" => !empty($_REQUEST["type"]) ? $_REQUEST["type"] : 0,
+      "user" => $_REQUEST["user"]
     ]);
 
     foreach ($_FILES["linerapp-files"]["name"] as $key => $sName) {
@@ -301,7 +302,7 @@ class MWGoogle extends Controller
       $arResponseListFiles[$arFilesList["id"]]["files"] = [];
       $arResponseListFiles[$arFilesList["id"]]["type"] = !empty($arTypeFilesName[$arFilesList["id_type"]]) ? $arTypeFilesName[$arFilesList["id_type"]] : "Н/Д";
       $arResponseListFiles[$arFilesList["id"]]["date"] = date("d/m/Y", $arResponseListFiles[$arFilesList["id"]]["date"]);
-      $arResponseListFiles[$arFilesList["id"]]["user"] = 1427716;
+      $arResponseListFiles[$arFilesList["id"]]["user"] = $arResponseListFiles[$arFilesList["id"]]["user"];
       $arResponseListFiles[$arFilesList["id"]]["date_attache"] = !empty($arResponseListFiles[$arFilesList["id"]]["date_attache"]) ? date("d/m/Y", $arResponseListFiles[$arFilesList["id"]]["date_attache"]) : "Н/Д";
 
       $arListIds[] = $arFilesList["id"];

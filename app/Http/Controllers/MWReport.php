@@ -246,14 +246,14 @@ class MWReport extends Controller
             $sheet->getStyle("I".$iFiles)->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
             $sheet->getStyle("I".$iFiles)->getAlignment()->setWrapText(true);
             $sheet->getStyle("I".$iFiles)->getAlignment()->setVertical(\PHPExcel_Style_Alignment::VERTICAL_CENTER);
-            $sheet->getStyle("I".$iFiles)->getNumberFormat()->setFormatCode(\PHPExcel_Style_NumberFormat::FORMAT_NUMBER);
+            $sheet->getStyle("I".$iFiles)->getNumberFormat()->setFormatCode(\PHPExcel_Style_NumberFormat::FORMAT_NUMBER_00);
           }
           if (isset($sPaymentRest[$key])) {
             $sheet->setCellValue("J".$iFiles, $sPaymentRest[$key]);
             $sheet->getStyle("J".$iFiles)->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
             $sheet->getStyle("J".$iFiles)->getAlignment()->setWrapText(true);
             $sheet->getStyle("J".$iFiles)->getAlignment()->setVertical(\PHPExcel_Style_Alignment::VERTICAL_CENTER);
-            $sheet->getStyle("J".$iFiles)->getNumberFormat()->setFormatCode(\PHPExcel_Style_NumberFormat::FORMAT_NUMBER);
+            $sheet->getStyle("J".$iFiles)->getNumberFormat()->setFormatCode(\PHPExcel_Style_NumberFormat::FORMAT_NUMBER_00);
           }
           $iFiles++;
         }
@@ -277,7 +277,7 @@ class MWReport extends Controller
       $sheet->setCellValue("K".$i, $arAllLead["dateOrder"]);
 
       $sheet->setCellValue("L".$i, $arAllLead["sale"]);
-      $sheet->getStyle("L".$i)->getNumberFormat()->setFormatCode(\PHPExcel_Style_NumberFormat::FORMAT_NUMBER);
+      $sheet->getStyle("L".$i)->getNumberFormat()->setFormatCode(\PHPExcel_Style_NumberFormat::FORMAT_NUMBER_00);
 
       $sheet->setCellValue("M".$i, $arAllLead["noteLead"]);
 

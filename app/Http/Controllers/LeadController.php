@@ -817,6 +817,7 @@ class LeadController extends Controller
   public function cronDistribution()
   {
     set_time_limit(36000);
+    $start = microtime(true);
     for ($i = 0; $i < 30; $i++) {
       $res = [];
       include_once $_SERVER["DOCUMENT_ROOT"]."/miwr/classes/class.distrbution.php";
@@ -886,6 +887,9 @@ class LeadController extends Controller
             }
           }
         }
+      }
+      if (microtime(true) - $start > 60) {
+        exit();
       }
       sleep(1);
     }
