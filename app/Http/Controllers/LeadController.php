@@ -703,7 +703,7 @@ class LeadController extends Controller
             $arListCopyStatus = $amoMW->noteGetList($lead_id, 3);
             if (!empty($arListCopyStatus["response"]) && empty($arListCopyStatus["error"])) {
               $arPipelinesData = $amoMW->pipelineGetList(); //["response"]["_embedded"]["items"];
-              if (!empty($arPipelinesData["error"])) {
+              if (empty($arPipelinesData["error"])) {
                 $arPipelines = $arPipelinesData["response"]["_embedded"]["items"];
                 foreach ($arListCopyStatus["response"]["_embedded"]["items"] as $data) {
                   $arParams55["add"][] = [
@@ -715,7 +715,7 @@ class LeadController extends Controller
                     "created_at" => $data["created_at"],
                     "created_by" => $data["created_by"],
                     'params' => [
-                      "text" => "Новый этап: ".$arPipelines[$data["params"]["PIPELINE_ID_OLD"]]["name"]." ".$arPipelines[$data["params"]["PIPELINE_ID_OLD"]]["statuses"][$data["params"]["STATUS_NEW"]]["name"]." из ".$arPipelines[$data["params"]["PIPELINE_ID_OLD"]]["statuses"][$data["params"]["STATUS_OLD"]]["name"],
+                      "text" => "Новый этап: ".$arPipelines[$data["params"]["PIPELINE_ID_OLD"]]["statuses"][$data["params"]["STATUS_NEW"]]["name"]." из ".$arPipelines[$data["params"]["PIPELINE_ID_OLD"]]["statuses"][$data["params"]["STATUS_OLD"]]["name"],
                       "service" => "Смена статуса",
                     ]
                   ];
