@@ -227,7 +227,7 @@ class MWGoogle extends Controller
         "fields" => "id",
       ]);
 
-      $obListFilesGoogle->insert([
+      $requestUpload = $obListFilesGoogle->insert([
         "account_id" => $this->obAccount->id,
         "name" => $_FILES["linerapp-files"]["name"][$key],
         "mimeType" => $_FILES["linerapp-files"]["type"][$key],
@@ -307,12 +307,12 @@ class MWGoogle extends Controller
 
       $arListIds[] = $arFilesList["id"];
     }
+    //vd($arListIds);
     if (!empty($arListIds)) {
       $arFilesGoogleLists = $obListFilesGoogle->getList([
         "limit" => "LIMIT 0, 100",
         "where" => "WHERE id_list_files IN (".implode(",", $arListIds).")"
       ]);
-
 
       while ($arFilesGoogleList = $obListFilesGoogle->fetch()) {
         $arResponseListFiles[$arFilesGoogleList["id_list_files"]]["files"][] = $arFilesGoogleList;
@@ -464,8 +464,10 @@ class MWGoogle extends Controller
     $arAmoAccount = $obAmo->getAccount("?with=custom_fields");
     $arFields = !empty($arAmoAccount["response"]["_embedded"]["custom_fields"]["leads"]) ? $arAmoAccount["response"]["_embedded"]["custom_fields"]["leads"] : false;
     $arFieldsNames = [];
-    foreach ($arFields as $arField) {
-      $arFieldsNames[$arField["name"]] = $arField["id"];
+    if (!empty($arFields)) {
+      foreach ($arFields as $arField) {
+        $arFieldsNames[$arField["name"]] = $arField["id"];
+      }
     }
 
     if (!empty($arFieldsNames["Прикрепленные документы"])) {
