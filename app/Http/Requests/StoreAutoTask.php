@@ -30,7 +30,7 @@ class StoreAutoTask extends FormRequest
             'subdomain' => 'required|string',
             'statuses' => 'required|array',
             'responsible' => 'required|array',
-            'schedule' => 'required|array',
+            'schedule' => 'array',
         ];
     }
 }

@@ -7,20 +7,33 @@ use Illuminate\Database\Eloquent\Model;
 class AutoTask extends Model
 {
     public $timestamps = false;
-    public $table = 'autotask';
+    public $table = "autotask";
 
-    protected $fillable = ['pipeline', 'account_id', 'statuses', 'responsible', 'schedule', 'task_type', 'body'];
-
-    protected $casts = [
-        'statuses' => 'array',
-        'responsible' => 'array',
-        'schedule' => 'array'
+    protected $fillable = [
+      "pipeline", 
+      "account_id", 
+      "statuses", 
+      "responsible", 
+      "schedule", 
+      "task_type", 
+      "body", 
+      "date_interval", 
+      "type_interval",
+      "date_days",
+      "date_hours",
+      "date_min"
     ];
 
-    protected $hidden = ['account_id'];
+    protected $casts = [
+        "statuses" => "array",
+        "responsible" => "array",
+        "schedule" => "array"
+    ];
+
+    protected $hidden = ["account_id"];
 
     public function account()
     {
-        return $this->belongsTo('App\Models\Account');
+        return $this->belongsTo("App\Models\Account");
     }
 }

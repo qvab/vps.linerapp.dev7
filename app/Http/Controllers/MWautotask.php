@@ -37,6 +37,7 @@ class MWautotask extends Controller
     $arTasks = AutoTask::where([
       ['schedule', 'LIKE', '%'.date('D').'%'],
       ["is_active", "=", 1],
+      ["type_interval", "=", "schedule"],
       //["success_time", "<", strtotime("now")]
     ])->distinct()->get([
       'account_id',

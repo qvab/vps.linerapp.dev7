@@ -155,13 +155,21 @@ class LeadController extends Controller
 
   public function extcalc(Request $request)
   {
-    try {
+    Log::info('CALCULATORS', [
+      "data" => json_encode($_REQUEST, JSON_UNESCAPED_UNICODE)
+    ]);
+    //try {
+
+    /**
+     * Этап установки/обновления настроек
+     */
       if ($request->input('hash')) {
         $account = $this->__addAccount($request);
         Log::info('add account for calc', [
           "account_action" => !empty($account['action']) ? $account['action'] : false
         ]);
-        $isFiled = $account->calc->fields;
+        $isFiled = $account["account"]->calc->fields;
+        //$isFiled = $account->calc->fields;
         if ($account['action'] === 'create') {
           if (empty($isFiled)) {
             $calc = \App\Models\CalcField::insert([
@@ -209,6 +217,9 @@ class LeadController extends Controller
         ]);
       }
 
+    /**
+     * Этап расчета калькулятора
+     */
       if ($request->input('leads.update.0.custom_fields') && ($cost = $request->input('leads.update.0.price'))) {
 
         $account = Account::where('subdomain', $request->input('account.subdomain'))->first();
@@ -217,7 +228,7 @@ class LeadController extends Controller
         $custom_fields = $request->input('leads.update.0.custom_fields');
         $cost_price = 0;
 
-
+/*
         for ($i = 0; $i < count($all_custom_fields); $i++) {
           for ($j = 0; $j < count($custom_fields); $j++) {
             if ($custom_fields[$j]['id'] == $all_custom_fields[$i]['id']) {
@@ -228,11 +239,29 @@ class LeadController extends Controller
             }
           }
         }
-
-        foreach ($account->calc->fields as $field) {
-          $cost_price += $amo->fields->get($field)[1];
+*/
+        include_once $_SERVER["DOCUMENT_ROOT"]."/amo.class.php";
+        $amoMW = new MW_AMO_CRM();
+        $amoMW->init($account->subdomain, $account->login, $account->hash);
+        $arLead = $amoMW->getLeadList(["id" => (int)$request->input('leads.update.0.id')]);
+        $arFieldsCustomsValue = [];
+        if (!empty($arLead["response"]["_embedded"]["items"][0])) {
+          $arCurrentLead = $arLead["response"]["_embedded"]["items"][0];
+          foreach ($arCurrentLead["custom_fields"] as $arField) {
+            $arFieldsCustomsValue[$arField["name"]] = $arField["values"][0]["value"];
+          }
         }
 
+        foreach ($account->calc->fields as $field) {
+          //$cost_price += $amo->fields->get($field)[1];
+          $cost_price += !empty($arFieldsCustomsValue[$field]) ? $arFieldsCustomsValue[$field] : 0;
+        }
+
+
+
+        Log::info('CALCULATORS cost_price', [
+          "data" => json_encode($cost_price, JSON_UNESCAPED_UNICODE)
+        ]);
         if ($cost_price > 0) {
           $calc = Calculator::where([
             'id' => (int)$request->input('leads.update.0.id'),
@@ -250,13 +279,11 @@ class LeadController extends Controller
             $lead = $amo->lead;
             $lead->addCustomField($amo->fields->get('Прибыль')[0], $cost - $cost_price);
             $lead->addCustomField($amo->fields->get('Затраты факт')[0], $cost_price);
-            //sleep(1);
+            sleep(1);
             $response = $lead->apiUpdate((int)$request->input('leads.update.0.id'), 'now');
-
-            Log::info('The record has been inserted successfully', [
-              'data' => $request->input('leads')
+            Log::info('CALCULATORS apiUpdate', [
+              "data" => json_encode($response, JSON_UNESCAPED_UNICODE)
             ]);
-
             return response()->json([
               'success' => [
                 'data' => 'The record has been inserted successfully'
@@ -285,10 +312,6 @@ class LeadController extends Controller
               sleep(1);
               $response = $lead->apiUpdate((int)$request->input('leads.update.0.id'), 'now');
 
-              /*Log::info('success cacl', [
-                'response' => $response
-              ]);
-*/
               $misha["data"] = $response;
               return response()->json(
                 [
@@ -298,10 +321,6 @@ class LeadController extends Controller
             }
           }
         } else {
-          Log::info('Required fields are missed', [
-            'data' => $request->input('leads')
-          ]);
-
           return response()->json([
             'error' => [
               'message' => 'Required fields are missed'
@@ -310,9 +329,9 @@ class LeadController extends Controller
         }
 
       }
-    } catch (\Exception $e) {
+    /*} catch (\Exception $e) {
       abort(400, $e->getMessage());
-    }
+    }*/
   }
 
 
@@ -693,9 +712,6 @@ class LeadController extends Controller
                 ];
               }
               $res = $amoMW->addNode($arParams44);
-              /*vd($res);
-              vd($arParams44);*/
-
             }
           }
 
@@ -704,23 +720,25 @@ class LeadController extends Controller
             if (!empty($arListCopyStatus["response"]) && empty($arListCopyStatus["error"])) {
               $arPipelinesData = $amoMW->pipelineGetList(); //["response"]["_embedded"]["items"];
               if (empty($arPipelinesData["error"])) {
-                $arPipelines = $arPipelinesData["response"]["_embedded"]["items"];
-                foreach ($arListCopyStatus["response"]["_embedded"]["items"] as $data) {
-                  $arParams55["add"][] = [
-                    "element_id" => $id,
-                    "responsible_user_id" => $data["responsible_user_id"],
-                    "element_type" => 2,
-                    "text" => "...",
-                    "note_type" => 25,
-                    "created_at" => $data["created_at"],
-                    "created_by" => $data["created_by"],
-                    'params' => [
-                      "text" => "Новый этап: ".$arPipelines[$data["params"]["PIPELINE_ID_OLD"]]["statuses"][$data["params"]["STATUS_NEW"]]["name"]." из ".$arPipelines[$data["params"]["PIPELINE_ID_OLD"]]["statuses"][$data["params"]["STATUS_OLD"]]["name"],
-                      "service" => "Смена статуса",
-                    ]
-                  ];
+                if (!empty($arPipelinesData["response"]["_embedded"]["items"])) {
+                  $arPipelines = $arPipelinesData["response"]["_embedded"]["items"];
+                  foreach ($arListCopyStatus["response"]["_embedded"]["items"] as $data) {
+                    $arParams55["add"][] = [
+                      "element_id" => $id,
+                      "responsible_user_id" => $data["responsible_user_id"],
+                      "element_type" => 2,
+                      "text" => "...",
+                      "note_type" => 25,
+                      "created_at" => $data["created_at"],
+                      "created_by" => $data["created_by"],
+                      'params' => [
+                        "text" => "Новый этап: ".$arPipelines[$data["params"]["PIPELINE_ID_OLD"]]["statuses"][$data["params"]["STATUS_NEW"]]["name"]." из ".$arPipelines[$data["params"]["PIPELINE_ID_OLD"]]["statuses"][$data["params"]["STATUS_OLD"]]["name"],
+                        "service" => "Смена статуса",
+                      ]
+                    ];
+                  }
+                  $res = $amoMW->addNode($arParams55);
                 }
-                $res = $amoMW->addNode($arParams55);
               }
             }
           }
@@ -770,6 +788,8 @@ class LeadController extends Controller
     }
 
     $arDistDB = $distribution->distribution->fields;
+    $arDistUpdateTime = $distribution->distribution->distribution_update;
+
     if (empty($arDistDB)) {
       return json_encode(["data" => $arForJSONPipeline, "field_my_lead" => $distribution->distribution->field_my_lead], JSON_UNESCAPED_UNICODE);
     } else {
@@ -792,7 +812,8 @@ class LeadController extends Controller
       ])->update([
         'fields' => json_encode($arDistDB, JSON_UNESCAPED_UNICODE),
         "active_widget" => 1,
-        "timezone" => $arAccountAMO["timezone"]
+        "timezone" => $arAccountAMO["timezone"],
+        "distribution_update" => !empty($arDistUpdateTime) ? (int) $arDistUpdateTime : 30
       ]);
       return json_encode(["dataset" => true, "data" => $arDistDB, "field_my_lead" => $distribution->distribution->field_my_lead], JSON_UNESCAPED_UNICODE);
     }
@@ -838,8 +859,8 @@ class LeadController extends Controller
             //"limit_rows" => 15,
             "filter" => [
               "date_create" => [
-                "from" =>  ($iCurrentTimeInAccount - 300),
-                "to" => $iCurrentTimeInAccount
+                "from" =>  ($iCurrentTimeInAccount - 600),
+                "to" => ($iCurrentTimeInAccount - $arAccount->distribution_update)
               ],
               "active" => 1
             ]
@@ -922,7 +943,8 @@ class LeadController extends Controller
           'fields' => $request->input('libra'),
           'field_my_lead' => $request->input('field_my_lead'),
           "active_widget" => 1,
-          "timezone" => $arAccountAMO["timezone"]
+          "timezone" => $arAccountAMO["timezone"],
+          "distribution_update" => !empty($request->input("distribution_update")) ? (int) $request->input("distribution_update") : 30
         ]);
 
         $amo = new AmoCRMClient($request->input('subdomain'), $request->input('login'), $request->input('hash'));
@@ -946,7 +968,8 @@ class LeadController extends Controller
             'fields' => $request->input('libra'),
             'field_my_lead' => $result_field_my_lead,
             "active_widget" => 1,
-            "timezone" => $arAccountAMO["timezone"]
+            "timezone" => $arAccountAMO["timezone"],
+            "distribution_update" => !empty($request->input("distribution_update")) ? (int) $request->input("distribution_update") : 30
           ]);
         } else {
           $distribution = Distribution::insert([
@@ -954,7 +977,8 @@ class LeadController extends Controller
             'fields' => $request->input('libra'),
             'field_my_lead' => !empty($result_field_my_lead),
             "active_widget" => 1,
-            "timezone" => $arAccountAMO["timezone"]
+            "timezone" => $arAccountAMO["timezone"],
+            "distribution_update" => !empty($request->input("distribution_update")) ? (int) $request->input("distribution_update") : 30
           ]);
 
           $amo = new AmoCRMClient($request->input('subdomain'), $request->input('login'), $request->input('hash'));
@@ -1017,8 +1041,8 @@ class LeadController extends Controller
         $responseLog = $mwDist->insert([
           "account_id" => $account->id,
           "lead_id" => $lead_id,
-          "type_function" => isset($_POST["ajax"]) ? 1 : 0,
-          "run" => 1
+          "type_function" => isset($_POST["ajax"]) ? 1 : 3,
+          "run" => 2
         ]);
         if (!empty($account) && !empty($currentPipeline)) {
           $arError["initSuccess"]++;
@@ -1219,15 +1243,49 @@ class LeadController extends Controller
         ]);
       }
 
-      $response = AutoTask::create([
+      $arDataCreated = [
         'account_id' => $account->id,
         'pipeline' => $request->input('pipeline'),
         'statuses' => $request->input('statuses'),
         'responsible' => $request->input('responsible'),
-        'schedule' => $request->input('schedule'),
+        'schedule' => !empty($request->input('schedule')) ? $request->input('schedule') : "",
         'task_type' => $request->input('task_type'),
         'body' => $request->input('body'),
-      ]);
+      ];
+
+
+      $iInterval = 0;
+      $iInterval += !empty($request->input("date_days")) ? (int) $request->input("date_days") * 86400 : 0;
+      $iInterval += !empty($request->input("date_hours")) ? (int) $request->input("date_hours") * 3600 : 0;
+      $iInterval += !empty($request->input("date_min")) ? (int) $request->input("date_min") * 60 : 0;
+
+      if (empty($request->input('schedule'))) {
+        $arDataCreated["type_interval"] = "date";
+        $arDataCreated["date_interval"] = $iInterval;
+
+        if (!empty($request->input("date_days"))) {
+          $arDataCreated["date_days"] = (int) $request->input("date_days");
+        }
+
+        if (!empty($request->input("date_hours"))) {
+          $arDataCreated["date_hours"] = (int) $request->input("date_hours");
+        }
+
+        if (!empty($request->input("date_min"))) {
+          $arDataCreated["date_min"] = (int) $request->input("date_min");
+        }
+
+      } elseif (empty($request->input('schedule')) &&
+        (
+          empty($request->input("date_days")) &&
+          empty($request->input("date_hours")) &&
+          empty($request->input("date_min"))
+        )) {
+        return response()->json([
+          'response' => "Ошибка не выбран тип периода"
+        ]);
+      }
+      $response = AutoTask::create($arDataCreated);
 
       if ($response) {
         return response()->json([
@@ -1251,14 +1309,42 @@ class LeadController extends Controller
       'id' => $autotask->id
     ])->first();
 
-    $response = $autotask->update([
+    $arDataCreated = [
+      'account_id' => $account->id,
       'pipeline' => $request->input('pipeline'),
       'statuses' => $request->input('statuses'),
       'responsible' => $request->input('responsible'),
-      'schedule' => $request->input('schedule'),
+      'schedule' => !empty($request->input('schedule')) ? $request->input('schedule') : "",
       'task_type' => $request->input('task_type'),
-      'body' => $request->input('body')
-    ]);
+      'body' => $request->input('body'),
+    ];
+
+    $iInterval = 0;
+    $iInterval += !empty($request->input("date_days")) ? (int) $request->input("date_days") * 86400 : 0;
+    $iInterval += !empty($request->input("date_hours")) ? (int) $request->input("date_hours") * 3600 : 0;
+    $iInterval += !empty($request->input("date_min")) ? (int) $request->input("date_min") * 60 : 0;
+
+    if (empty($request->input('schedule'))) {
+      $arDataCreated["type_interval"] = "date";
+      $arDataCreated["date_interval"] = $iInterval;
+
+      $arDataCreated["date_days"] = $request->input("date_days");
+      $arDataCreated["date_hours"] = $request->input("date_hours");
+      $arDataCreated["date_min"] = $request->input("date_min");
+    } elseif (!empty($request->input('schedule'))) {
+      $arDataCreated["type_interval"] = "schedule";
+    } elseif (empty($request->input('schedule')) &&
+      (
+        empty($request->input("date_days")) &&
+        empty($request->input("date_hours")) &&
+        empty($request->input("date_min"))
+      )) {
+      return response()->json([
+        'response' => "Ошибка не выбран тип периода"
+      ]);
+    }
+
+    $response = $autotask->update($arDataCreated);
 
     return response()->json([
       'response' => $response
@@ -1267,7 +1353,7 @@ class LeadController extends Controller
 
   public function setTask()
   {
-    file_put_contents(storage_path('app/cron.txt'), print_r(date('d.m.Y H:i:s'), true));
+    //file_put_contents(storage_path('app/cron.txt'), print_r(date('d.m.Y H:i:s'), true));
     //exit();
     //echo date('D', strtotime('-6 day')); exit();
     $tasks = AutoTask::where('schedule', 'LIKE', '%'.date('D').'%')->distinct()->get([
@@ -1585,17 +1671,6 @@ class LeadController extends Controller
     }
 
     return $data;
-  }
-
-
-  public
-  function testReq(Request $request)
-  {
-    Log::info('TEST_REQUEST', [
-      'data' => $request
-    ]);
-    return 1;
-
   }
 
 }

@@ -46,6 +46,8 @@ Route::get('/cron/distribution/', 'LeadController@cronDistribution');
 Route::get('/destroy/distribution/{account}', 'LeadController@destroyDistribution');
 
 Route::get('/leads/autotask/run', 'MWautotask@run');
+Route::get('/leads/autotask-date/run', 'MWAutotaskDate@run');
+
 
 Route::post('/leads/autotask/set', 'LeadController@saveAutoTask');
 
