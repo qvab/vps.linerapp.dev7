@@ -1,10 +1,11 @@
-<?php 
+<?php
+/*
 	function dump($params){
 		echo "<pre>";
 			var_dump($params);
 		echo "</pre>";
 	}	
-
+*/
 	function writeToLog($data, $title = '') {
 		$log = "\n------------------------\n";
 		$log .= date("Y.m.d G:i:s") . "\n";

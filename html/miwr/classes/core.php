@@ -104,7 +104,7 @@ class core
         $arParam["limit"] = "LIMIT {$this->pagination["currentPosition"]}, {$arParam["pagination"]["pageSize"]}";
       }
       $sSql = "SELECT {$arParam["select"]} FROM {$arParam["table"]} {$arParam["where"]} {$arParam["order"]} {$arParam["limit"]}";
-      $rResponse = $this->__dbQuery($sSql) or die($this->__dbError($this->resourceConnect));
+      $rResponse = $this->__dbQuery($sSql) or die("mysql error: (SQL: ".$sSql.")<br />".$this->__dbError($this->resourceConnect));
       return $rResponse;
     }
     return $this->responseError();

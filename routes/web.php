@@ -99,3 +99,29 @@ route::get('/report/download/{account}/{user}', "MWReport@download");
 route::post('/report/set/', "MWReport@set");
 route::get('/report/get/{account_id}', "MWReport@get");
 
+// license
+Route::get('/license/get/{account}/{w_code}', 'MWLicense@get');
+Route::post('/license/post/{account}/{w_code}', 'MWLicense@post');
+Route::post('/license/payment/{account}/{w_code}', 'MWLicense@payment');
+Route::get('/license/payment/get/{account}/{w_code}', 'MWLicense@paymentGet');
+
+
+
+Route::get("/testamo", "MWtest@run");
+
+// destroy
+Route::post('/destroy/{w_code}', 'MWDestroy@run');
+
+// Calc PRO
+Route::post('/calc_pro/get/setting/{account}', 'MWCalcPro@getSetting');
+Route::post('/calc_pro/edit/setting/{account}', 'MWCalcPro@editSetting');
+Route::post('/calc_pro/set/setting/{account}', 'MWCalcPro@setSetting');
+
+Route::post('/calc_pro/get/lead/{account}', 'MWCalcPro@getLead');
+Route::post('/calc_pro/save/lead/{account}', 'MWCalcPro@saveLead');
+
+// sms
+Route::post('/sms_services/get_setting/{account}', 'MWSms@getSetting');
+Route::post('/sms_services/set_setting/{account}', 'MWSms@setSetting');
+Route::post('/sms_services/get_sms', 'MWSms@getSMS');
+Route::post('/sms_services/response', 'MWSms@response');

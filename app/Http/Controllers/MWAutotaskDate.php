@@ -39,7 +39,6 @@ class MWAutotaskDate extends Controller
       $arTasks = AutoTask::where([
         ["is_active", "=", 1],
         ["type_interval", "=", "date"],
-        ["account_id", "=", "77"],
       ])->distinct()->get([
         'account_id',
         'pipeline',
@@ -56,11 +55,7 @@ class MWAutotaskDate extends Controller
       $arSetTasks = [];
       $arAddLog = []; // Список лидов на доавбелние в базу
       $arCurrentTime = getdate();
-      if ($arCurrentTime["hours"] > 2) {
-        $sTime = date('d-m-Y 23:59', strtotime("today + 24 hours"));
-      } else {
-        $sTime = date('d-m-Y 23:59');
-      }
+      $sTime = date('d-m-Y 23:59');
       foreach ($arTasks as $arTask) {
         if (empty($arSetTasks[$arTask->account->subdomain])) {
           $arSetTasks[$arTask->account->subdomain] = [];
@@ -107,7 +102,7 @@ class MWAutotaskDate extends Controller
               if (!empty($arGetLogId)) {
                 $rRes = $obAutoTaskLog->getList([
                   "limit" => "LIMIT 0, 500",
-                  "where" => "WHERE account_id='{$arTask->account->id}' AND lead_id IN (".implode(",", $arGetLogId).")"
+                  "where" => "WHERE account_id='{$arTask->account->id}' AND autotask_id='{$arTask->id}' AND lead_id IN (".implode(",", $arGetLogId).")"
                 ]);
                 while ($arAutoTaskList = $obAutoTaskLog->fetch($rRes)) {
                   unset(
@@ -126,20 +121,18 @@ class MWAutotaskDate extends Controller
           }
           if ($iCycle > 10) {
             $bCycleAuth = false;  // Выходим из цыкла после 10-ти провальных авторизаций
-            Log::info("AUTOTASK_LOG", ["BAD" => "10"]);
+            Log::info("AUTOTASK_LOG Date", ["BAD" => "10", "auth" => $bAuth]);
           }
         }
       }
       // Добавление логов
       if (!empty($arAddLog)) {
+        /*Log::info("AUTOTASK_DATE", ["LOG" => $arAddLog]);
         $obAutoTaskLog->insert([
           "set" => ["account_id", "lead_id", "autotask_id", "time"],
           "values" => $arAddLog
-        ]);
+        ]);*/
       }
-      Log::info("AUTOTASK", [
-        "data" => $resTask
-      ]);
       //vd($arSetTasks);
       //vd($resTask);
       if (microtime(true) - $start > 50) {

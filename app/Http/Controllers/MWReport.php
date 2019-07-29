@@ -24,6 +24,7 @@ class MWReport extends Controller
 
   public function __construct()
   {
+    set_time_limit(36000);
     header("Access-Control-Allow-Origin: *");
     header("Access-Control-Allow-Headers: *");
     header("Content-type: text/html; charset=UTF-8");
@@ -39,9 +40,18 @@ class MWReport extends Controller
     $obFiles = new ListFiles();
     $iCurrentUser = $user;
     $amo = new MW_AMO_CRM();
-    $amo->init($obAccount->subdomain, $obAccount->login, $obAccount->hash);
-    $arAccount = $amo->getAccount("?with=users");
-    $arPipelines = $amo->getAccount("?with=pipelines")["response"]["_embedded"]["pipelines"];
+    $statusAuth = $amo->init($obAccount->subdomain, $obAccount->login, $obAccount->hash);
+    $arAccount = $amo->getAccount("?with=users,pipelines");
+    //vd($arAccount["response"]["_embedded"]["pipelines"]); exit();
+
+    if (!empty($arAccount["response"]["_embedded"]["pipelines"])) {
+      $arPipelines = $arAccount["response"]["_embedded"]["pipelines"];
+    } else {
+      echo "Фатальная ошибка при выборке списка воронок: ";
+      vd($arAccount);
+      exit();
+    }
+
     $arRules = $arAccount["response"]["_embedded"]["users"][$iCurrentUser]["rights"];
     $bFlagInit = true;
     $bFlagResp = false;
@@ -101,11 +111,33 @@ class MWReport extends Controller
     $sOrderDate = '';
     if (!empty($arLeads["response"]["_embedded"]["items"])) {
       $arLeads = $arLeads["response"]["_embedded"]["items"];
+
+
+      /***
+       * Helper: Делаем выборку названий компании, и добавляем в массив $arLeads
+       */
+      $arCompanies = $arCompaniesName = [];
+      foreach ($arLeads as $arLead) {
+        if (!empty($arLead["company"]["id"])) {
+          $arCompanies["id"][] = $arLead["company"]["id"];
+        }
+      }
+      $arCompaniesAmo = $amo->getCompanyList($arCompanies);
+      if (empty($arCompaniesAmo["response"]["_embedded"]["items"])) {
+        echo "Фатальная ошибка при выборке списка компании: ";
+        vd($arCompaniesAmo);
+        exit();
+      } else {
+        foreach ($arCompaniesAmo["response"]["_embedded"]["items"] as $arCompanyOne) {
+          $arCompaniesName[$arCompanyOne["id"]] = $arCompanyOne["name"];
+        }
+      }
+
       foreach ($arLeads as $arLead) {
         $sSchemaPayment = $sCommentPayment = $sNoteLead = '';
         $arCompany = "Не заполненно";
         if (!empty($arLead["company"]["id"])) {
-          $arCompany = $amo->getCompany($arLead["company"]["id"])["response"]["_embedded"]["items"][0]["name"];
+          $arCompany = $arCompaniesName[$arLead["company"]["id"]];
         }
         $arPayment = [];
         foreach ($arLead["custom_fields"] as $arCustom) {
@@ -146,8 +178,6 @@ class MWReport extends Controller
             case 'Срок договора':
               $sOrderDate = $arCustom["values"][0]["value"];
               break;
-
-
           }
         }
 
@@ -168,6 +198,10 @@ class MWReport extends Controller
         ];
         $arIdLead[] = $arLead["id"];
       }
+    } else {
+      echo "Фатальная ошибка при выборке списка сделок: ";
+      vd($arLeads);
+      exit();
     }
     $obFiles->getList([
       "limit" => "LIMIT 0, 500",
@@ -286,7 +320,6 @@ class MWReport extends Controller
         $sheet->getStyle($sMainCell.$i)->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle($sMainCell.$i)->getAlignment()->setWrapText(true);
       }
-
 
 
       if (!empty($arAllLead["files_1"])) {

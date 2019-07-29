@@ -43,8 +43,9 @@ class MW_AMO_CRM
     <pre><?php var_dump($this->debug); ?></pre><?php
   }
 
-  public function __initHeader($data, $link, $bPost = true)
+  public function __initHeader($data, $link, $bPost = true, $bAuth = false)
   {
+    $this->curl = curl_init();
     if (!empty($this->curl)) {
       curl_reset($this->curl);
     }
@@ -58,8 +59,10 @@ class MW_AMO_CRM
     }
     curl_setopt($this->curl, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
     curl_setopt($this->curl, CURLOPT_HEADER, false);
-    curl_setopt($this->curl, CURLOPT_COOKIEFILE, dirname(__FILE__)."/cookie.txt");
-    curl_setopt($this->curl, CURLOPT_COOKIEJAR, dirname(__FILE__)."/cookie.txt");
+    curl_setopt($this->curl, CURLOPT_COOKIEFILE, dirname(__FILE__)."/cookies/".$this->confing["subdomain"]."_cookie.txt");
+    if (!empty($bAuth)) {
+      curl_setopt($this->curl, CURLOPT_COOKIEJAR, dirname(__FILE__)."/cookies/".$this->confing["subdomain"]."_cookie.txt");
+    }
     curl_setopt($this->curl, CURLOPT_SSL_VERIFYPEER, 0);
     curl_setopt($this->curl, CURLOPT_SSL_VERIFYHOST, 0);
   }
@@ -70,21 +73,28 @@ class MW_AMO_CRM
     return $out = curl_exec($this->curl);
   }
 
-  public function init($subdomain, $login, $hash)
+  public function init($subdomain = false, $login = false, $hash = false)
   {
-    $this->confing = [
-      "subdomain" => $subdomain,
-      "login" => $login,
-      "hash" => $hash
-    ];
-    $user = array(
-      "USER_LOGIN" => $login,
-      "USER_HASH" => $hash
-    );
+    if (empty($this->confing)) {
+      $this->confing = [
+        "subdomain" => $subdomain,
+        "login" => $login,
+        "hash" => $hash
+      ];
+      $user = array(
+        "USER_LOGIN" => $login,
+        "USER_HASH" => $hash
+      );
+    } else {
+      $user = array(
+        "USER_LOGIN" => $this->confing["login"],
+        "USER_HASH" => $this->confing["hash"]
+      );
+    }
     $link = "https://".$this->confing["subdomain"].".amocrm.ru/private/api/auth.php?type=json";
-    $this->curl = curl_init();
-    $this->__initHeader($user, $link);
+    $this->__initHeader($user, $link, true, true);
     $out = curl_exec($this->curl);
+    $curlInfo = curl_getinfo($this->curl);
     $code = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
     $code = (int)$code;
     $errors = array(
@@ -105,7 +115,8 @@ class MW_AMO_CRM
       $this->errors["init"] = "Авторизация не удалась";
       $bAuth = false;
     }
-    return ["response" => $Response, "code" => $code, "auth" => $bAuth];
+    curl_close($this->curl);
+    return ["response" => $Response, "code" => $code, "auth" => $bAuth, "info" => $curlInfo];
   }
 
   private function __addField($type, $data)
@@ -161,6 +172,7 @@ class MW_AMO_CRM
         $output[] = $v["id"]; // .= $v['id'].PHP_EOL;
       }
     }
+    curl_close($this->curl);
     return $output;
   }
 
@@ -188,6 +200,7 @@ class MW_AMO_CRM
       $arData[$k] = $v;
     }
     $fields["update"][] = array_merge($arData, $data);
+    vd($fields);
     $this->debug["updateLead"] = $fields;
     $this->__initHeader($fields, $link);
     $out = curl_exec($this->curl);
@@ -245,10 +258,33 @@ class MW_AMO_CRM
   {
     $link = "https://".$this->confing["subdomain"].".amocrm.ru/api/v2/pipelines";
     $arData["updated_at"] = strtotime("now");
-    $this->__initHeader([], $link, false);
-    $out = curl_exec($this->curl);
-    $code = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
-    return ["response" => json_decode($out, true), "code" => $code];
+
+    $iInc = 0;
+    $bFlag = true;
+    $arResponses = [];
+    while ($bFlag) {
+      $iInc++;
+      if ($iInc > 9) {
+        $bFlag = false;
+      }
+      $this->__initHeader([], $link, false);
+      $out = curl_exec($this->curl);
+      $code = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
+      $arResponses[] = [
+        "content" => json_decode($out, true),
+        "code" => $code,
+        "inc" => $iInc
+      ];
+      if ($code != 200 && $code != 204) {
+        if ($iInc > 9) {
+          return ["error" => 1, "response" => $arResponses];
+        }
+      } else {
+        $bFlag = false;
+        return ["response" => json_decode($out, true), "code" => $code];
+      }
+      sleep(1);
+    }
   }
 
 
@@ -356,15 +392,59 @@ class MW_AMO_CRM
   }
 
 
-  public function getAccount($sWith = "")
+  public function getCompanyList($arCompanies)
   {
-    $sWith = !empty($sWith) ? $sWith : "";
-    $link = "https://".$this->confing["subdomain"].".amocrm.ru/api/v2/account".$sWith;
+    if (!empty($arCompanies)) {
+      $sQuery = "?".http_build_query($arCompanies)."&limit_rows=500";
+    } else {
+      $sQuery = "";
+    }
+    $link = "https://".$this->confing["subdomain"].".amocrm.ru/api/v2/companies".$sQuery;
     $arData["updated_at"] = strtotime("now");
     $this->__initHeader([], $link, false);
     $out = curl_exec($this->curl);
     $code = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
     return ["response" => json_decode($out, true), "code" => $code];
+  }
+
+
+  public function getAccount($sWith = "")
+  {
+    set_time_limit(36000);
+    $sWith = !empty($sWith) ? $sWith : "";
+    $link = "https://".$this->confing["subdomain"].".amocrm.ru/api/v2/account".$sWith;
+    $arData["updated_at"] = strtotime("now");
+    $iInc = 0;
+    $bFlag = true;
+    $arResponses = [];
+
+    while ($bFlag) {
+      $iInc++;
+      if ($iInc > 9) {
+        $bFlag = false;
+      }
+      if ($iInc > 0) {
+        $arAuth = $this->init();
+      }
+      $this->__initHeader([], $link, false);
+      $out = curl_exec($this->curl);
+      $code = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
+      curl_close($this->curl);
+      $arResponses[] = [
+        "content" => json_decode($out, true),
+        "code" => $code,
+        "inc" => $iInc
+      ];
+      if ($code != 200 && $code != 204) {
+        if ($iInc > 9) {
+          return ["error" => 1, "response" => $arResponses];
+        }
+      } else {
+        $bFlag = false;
+        return ["response" => json_decode($out, true), "code" => $code, "incs" => $iInc];
+      }
+      sleep(1);
+    }
   }
 
 

@@ -28,6 +28,18 @@ class Account extends core
     return $this->__fetch($this->__dbGet($arParam));
   }
 
+  public function getById($id)
+  {
+    $arParam = $this->__options([
+      "table" => $this->table
+    ], [
+      "limit" => "LIMIT 1",
+      "where" => "WHERE id = '{$id}'",
+      "pagination" => false
+    ]);
+    return $this->__fetch($this->__dbGet($arParam));
+  }
+
 
   public function fetch()
   {

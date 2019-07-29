@@ -105,7 +105,7 @@ class MWautotask extends Controller
             if (!empty($arGetLogId)) {
               $rRes = $obAutoTaskLog->getList([
                 "limit" => "LIMIT 0, 500",
-                "where" => "WHERE account_id='{$arTask->account->id}' AND lead_id IN (".implode(",", $arGetLogId).")"
+                "where" => "WHERE account_id='{$arTask->account->id}'  AND autotask_id='{$arTask->id}' AND lead_id IN (".implode(",", $arGetLogId).")"
               ]);
               while ($arAutoTaskList = $obAutoTaskLog->fetch($rRes)) {
                 unset(
@@ -135,9 +135,6 @@ class MWautotask extends Controller
         "values" => $arAddLog
       ]);
     }
-    Log::info("AUTOTASK", [
-      "data" => $resTask
-    ]);
     vd($arSetTasks);
     vd($resTask);
 

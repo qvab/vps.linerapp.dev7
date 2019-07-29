@@ -16,6 +16,10 @@ class VerifyCsrfToken extends Middleware
     '/docs/*',
     '/account/*',
     '/sdk/*',
-    '/report/*'
+    '/report/*',
+    '/license/*',
+    '/destroy/*',
+    '/calc_pro/*',
+    '/sms_services/*'
   ];
 }

@@ -2,8 +2,8 @@
 
 class Config
 {
-    var $login = 'api@linerapp.com';
-    var $hash = '72f4a191eb8b6d34d074dd357850e8eb65477efc';
+    var $login = 'support@linerapp.com';
+    var $hash = 'b0e31d235ad6536539a1c69af1026989fe5aa6c0';
     var $subdomain='linerapp';
 }
 ?>
